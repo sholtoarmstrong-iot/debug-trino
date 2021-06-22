@@ -921,14 +921,17 @@ public class TrinoS3FileSystem
     private AWSCredentialsProvider createAwsCredentialsProvider(URI uri, Configuration conf)
     {
         // credentials embedded in the URI take precedence and are used alone
+        log.debug("createAwsCredentialsProvider getEmbeddedAwsCredentials");
         Optional<AWSCredentials> credentials = getEmbeddedAwsCredentials(uri);
         if (credentials.isPresent()) {
+            log.debug("createAwsCredentialsProvider Return AWSStaticCredentialsProvider");
             return new AWSStaticCredentialsProvider(credentials.get());
         }
 
         // a custom credential provider is also used alone
         String providerClass = conf.get(S3_CREDENTIALS_PROVIDER);
         if (!isNullOrEmpty(providerClass)) {
+            log.debug("createAwsCredentialsProvider Return getCustomAWSCredentialsProvider");
             return getCustomAWSCredentialsProvider(uri, conf, providerClass);
         }
 
@@ -938,6 +941,7 @@ public class TrinoS3FileSystem
                 .orElseGet(DefaultAWSCredentialsProviderChain::getInstance);
 
         if (iamRole != null) {
+            log.debug("createAwsCredentialsProvider overwrite iamRole");
             provider = new STSAssumeRoleSessionCredentialsProvider.Builder(iamRole, "trino-session")
                     .withExternalId(externalId)
                     .withLongLivedCredentialsProvider(provider)
@@ -963,32 +967,39 @@ public class TrinoS3FileSystem
 
     private static Optional<AWSCredentials> getEmbeddedAwsCredentials(URI uri)
     {
+        log.debug("Attempting to getEmbeddedAwsCredentials");
         String userInfo = nullToEmpty(uri.getUserInfo());
         List<String> parts = Splitter.on(':').limit(2).splitToList(userInfo);
         if (parts.size() == 2) {
+            log.debug("Found EmbeddedAwsCredentials");
             String accessKey = parts.get(0);
             String secretKey = parts.get(1);
             if (!accessKey.isEmpty() && !secretKey.isEmpty()) {
                 return Optional.of(new BasicAWSCredentials(accessKey, secretKey));
             }
         }
+        log.debug("Return Empty EmbeddedAwsCredentials");
         return Optional.empty();
     }
 
     private static Optional<AWSCredentials> getAwsCredentials(Configuration conf)
     {
+        log.debug("Attempting to getAwsCredentials");
         String accessKey = conf.get(S3_ACCESS_KEY);
         String secretKey = conf.get(S3_SECRET_KEY);
 
         if (isNullOrEmpty(accessKey) || isNullOrEmpty(secretKey)) {
+            log.debug("Return Empty getAwsCredentials");
             return Optional.empty();
         }
 
         String sessionToken = conf.get(S3_SESSION_TOKEN);
         if (!isNullOrEmpty(sessionToken)) {
+            log.debug("Return Empty BasicSessionCredentials");
             return Optional.of(new BasicSessionCredentials(accessKey, secretKey, sessionToken));
         }
 
+        log.debug("Return Empty BasicAWSCredentials");
         return Optional.of(new BasicAWSCredentials(accessKey, secretKey));
     }
 
