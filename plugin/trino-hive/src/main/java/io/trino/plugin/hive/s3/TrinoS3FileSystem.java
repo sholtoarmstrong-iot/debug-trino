@@ -21,6 +21,7 @@ import com.amazonaws.Protocol;
 import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
+import com.amazonaws.auth.WebIdentityTokenCredentialsProvider;
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.auth.BasicSessionCredentials;
 import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
@@ -932,6 +933,10 @@ public class TrinoS3FileSystem
         String providerClass = conf.get(S3_CREDENTIALS_PROVIDER);
         if (!isNullOrEmpty(providerClass)) {
             log.debug("createAwsCredentialsProvider Return getCustomAWSCredentialsProvider");
+            if (providerClass.equals("com.amazonaws.auth.WebIdentityTokenCredentialsProvider")) {
+                log.debug("creating web identity token provider");
+                return new WebIdentityTokenCredentialsProvider();
+            }
             return getCustomAWSCredentialsProvider(uri, conf, providerClass);
         }
 
